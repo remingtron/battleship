@@ -20,25 +20,15 @@ module Battleship
       player, opponent, board = @state[@turn]
       @turn = -(@turn - 1)
 
-      if (player.name == "This is the best player" || opponent.name == "This is the best player")
-        if (player.name == "This is the best player")
-          move = dup_if_possible(player.take_turn(board.report, board.ships_remaining))
-          result = board.try(move)
-        else
-          result = board.try([0,0])
-        end
-
-      else
-        move = dup_if_possible(player.take_turn(board.report, board.ships_remaining))
-        result = board.try(move)
-      end
+      move = dup_if_possible(player.take_turn(board.report, board.ships_remaining))
+      result = board.try(move)
 
       if result == :invalid
         @winner = opponent
       elsif board.sunk?
         @winner = player
       end
-
+      
       result
     end
 
