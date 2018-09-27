@@ -27,12 +27,6 @@ class RemyPlayer
       end
 
       #random search
-      # (0...10).each do |row|
-      #   starting_column = row % 2
-      #   (starting_column...10).step(2) do |column|
-      #     return [column, row] if (state[row][column] == :unknown)
-      #   end
-      # end
       while @plays.length > 0 do
         move = @plays.delete_at(rand(@plays.length))
         return move if state[move[1]][move[0]] == :unknown
