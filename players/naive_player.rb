@@ -1,16 +1,14 @@
+$:.unshift File.expand_path("../../data", __FILE__)
+
+require 'sample_boards'
+
 class NaivePlayer
   def name
     "Naive Player"
   end
 
   def new_game
-    [
-      [0, 0, 5, :across],
-      [0, 1, 4, :across],
-      [0, 2, 3, :across],
-      [0, 3, 3, :across],
-      [0, 4, 2, :across]
-    ]
+    Battleship::SAMPLE_BOARDS[rand(Battleship::SAMPLE_BOARDS.length)]
   end
 
   def take_turn(state, ships_remaining)
