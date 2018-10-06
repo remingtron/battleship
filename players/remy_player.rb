@@ -8,12 +8,9 @@ class RemyPlayer
     end
 
     def initialize
-      @logging_enabled = false
       @plays = (0...10).map { |x| ((x%2)...10).step(2).map { |y| [x,y] } }.flatten(1)
       @sunk_locations = []
-      if @logging_enabled
-        File.delete('/tmp/foo') if File.exist?('/tmp/foo')
-      end
+      @backup_plays = []
     end
   
     def new_game
@@ -51,7 +48,7 @@ class RemyPlayer
     end
 
     def log(message)
-      if @logging_enabled
+      if true
         File.open('/tmp/foo', 'a') do |file|
           file.write(message)
           file.write("\n")
@@ -84,13 +81,24 @@ class RemyPlayer
         end
       end
 
-      #random search
+      #random search not around ships
       while @plays.length > 0 do
         move = @plays.delete_at(rand(@plays.length))
+        return [move, :none] if state[move[1]][move[0]] == :unknown && surrounded_by_unknowns(move, state)
+        @backup_plays << move if state[move[1]][move[0]] == :unknown
+      end
+
+      #remaining random search
+      while @backup_plays.length > 0 do
+        move = @backup_plays.delete_at(rand(@backup_plays.length))
         return [move, :none] if state[move[1]][move[0]] == :unknown
       end
 
       return [[0,0], :none] #should never get here, but don't want to explode
+    end
+
+    def surrounded_by_unknowns(move, state)
+      return [:left, :right, :up, :down].map {|dir| move_direction(move, dir)}.select {|move| is_valid_position(move)}.all? {|move| is_valid_unknown(move, state)}
     end
 
     def move_direction(location, direction, distance = 1)
