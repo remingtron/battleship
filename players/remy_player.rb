@@ -8,9 +8,12 @@ class RemyPlayer
     end
 
     def initialize
+      @logging_enabled = false
       @plays = (0...10).map { |x| ((x%2)...10).step(2).map { |y| [x,y] } }.flatten(1)
       @sunk_locations = []
-      # File.delete('/tmp/foo') if File.exist?('/tmp/foo')
+      if @logging_enabled
+        File.delete('/tmp/foo') if File.exist?('/tmp/foo')
+      end
     end
   
     def new_game
@@ -48,9 +51,11 @@ class RemyPlayer
     end
 
     def log(message)
-      File.open('/tmp/foo', 'a') do |file| 
-        file.write(message)
-        file.write("\n")
+      if @logging_enabled
+        File.open('/tmp/foo', 'a') do |file|
+          file.write(message)
+          file.write("\n")
+        end
       end
     end
 
