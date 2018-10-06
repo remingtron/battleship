@@ -10,6 +10,7 @@ class RemyPlayer
     def initialize
       @plays = (0...10).map { |x| ((x%2)...10).step(2).map { |y| [x,y] } }.flatten(1)
       @sunk_locations = []
+      # File.delete('/tmp/foo') if File.exist?('/tmp/foo')
     end
   
     def new_game
@@ -17,33 +18,57 @@ class RemyPlayer
     end
   
     def take_turn(state, ships_remaining)
-      prior_ships_remaining = @ships_remaining || [5,4,3,3,2]
-      @ships_remaining = ships_remaining
+      begin
+        log(state[@last_shot[1]][@last_shot[0]]) if @last_shot
+        prior_ships_remaining = @ships_remaining || [5,4,3,3,2]
+        @ships_remaining = ships_remaining
 
-      if prior_ships_remaining.size != @ships_remaining.size
-        first_different_index = (0...@ships_remaining.size).select {|i| prior_ships_remaining[i] != @ships_remaining[i]}.first
-        sunk_ship_length = prior_ships_remaining[first_different_index]
+        log(@ships_remaining)
+        log(prior_ships_remaining)
 
-        @sunk_locations += (0...sunk_ship_length).map {|x| move_direction(@last_shot, opposite_direction(@direction), x)}
+        if prior_ships_remaining.size != @ships_remaining.size
+          log('sank a ship!')
+          first_different_index = (0...prior_ships_remaining.size).select {|i| prior_ships_remaining[i] != @ships_remaining[i]}.first
+          sunk_ship_length = prior_ships_remaining[first_different_index]
 
-        @last_shot = @direction = nil
+          @sunk_locations += (0...sunk_ship_length).map {|x| move_direction(@last_shot, opposite_direction(@direction), x)}
+          log(@sunk_locations)
+
+          @last_shot = @direction = nil
+        end
+
+        @last_shot, @direction = determine_shot(state, ships_remaining)
+        log(@last_shot)
+        log(@direction)
+        return @last_shot
+      rescue Exception => ex
+        log("error: " + ex.message)
+        log(ex.backtrace)
       end
+    end
 
-      @last_shot, @direction = determine_shot(state, ships_remaining)
-      return @last_shot
+    def log(message)
+      File.open('/tmp/foo', 'a') do |file| 
+        file.write(message)
+        file.write("\n")
+      end
     end
 
     def determine_shot(state, ships_remaining)
-      
-      if @last_shot != nil && @direction != nil
+      if @last_shot != nil && @direction != :none
         if state[@last_shot[1]][@last_shot[0]] == :hit && is_valid_unknown(move_direction(@last_shot, @direction), state)
           return [move_direction(@last_shot, @direction), @direction]
         end
         
-        # if state[@last_shot[1]][@last_shot[0]] == :miss
-        #   return move_direction(@last_shot, @direction)
-        # end
-
+        back_two_in_other_dir = move_direction(@last_shot, opposite_direction(@direction), 2)
+        if state[@last_shot[1]][@last_shot[0]] == :hit || (is_valid_position(back_two_in_other_dir) && state[back_two_in_other_dir[1]][back_two_in_other_dir[0]] == :hit)
+          candidate = move_direction(@last_shot, opposite_direction(@direction))
+          while is_valid_position(candidate)
+            return [candidate, opposite_direction(@direction)] if is_valid_unknown(candidate, state)
+            break if state[candidate[1]][candidate[0]] == :miss
+            candidate = move_direction(candidate, opposite_direction(@direction))
+          end
+        end
       end
 
       #surround any non-surrounded hits
@@ -57,10 +82,10 @@ class RemyPlayer
       #random search
       while @plays.length > 0 do
         move = @plays.delete_at(rand(@plays.length))
-        return move if state[move[1]][move[0]] == :unknown
+        return [move, :none] if state[move[1]][move[0]] == :unknown
       end
 
-      return [0,0] #should never get here, but don't want to explode
+      return [[0,0], :none] #should never get here, but don't want to explode
     end
 
     def move_direction(location, direction, distance = 1)
@@ -76,7 +101,7 @@ class RemyPlayer
       end
     end
 
-    def opposite_direction
+    def opposite_direction(direction)
       case direction
       when :left
         return :right
@@ -90,7 +115,11 @@ class RemyPlayer
     end
 
     def is_valid_unknown(candidate, state)
-      candidate[0] >= 0 && candidate[0] <= 9 && candidate[1] >= 0 && candidate[1] <= 9 && state[candidate[1]][candidate[0]] == :unknown
+      is_valid_position(candidate) && state[candidate[1]][candidate[0]] == :unknown
+    end
+
+    def is_valid_position(candidate)
+      candidate[0] >= 0 && candidate[0] <= 9 && candidate[1] >= 0 && candidate[1] <= 9
     end
   end
   
