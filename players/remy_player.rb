@@ -26,24 +26,28 @@ class RemyPlayer
         log(@ships_remaining)
         log(prior_ships_remaining)
 
-        if prior_ships_remaining.size != @ships_remaining.size
-          log('sank a ship!')
-          first_different_index = (0...prior_ships_remaining.size).select {|i| prior_ships_remaining[i] != @ships_remaining[i]}.first
-          sunk_ship_length = prior_ships_remaining[first_different_index]
-
-          @sunk_locations += (0...sunk_ship_length).map {|x| move_direction(@last_shot, opposite_direction(@direction), x)}
-          log(@sunk_locations)
-
-          @last_shot = @direction = nil
-        end
-
+        check_if_sank_ship(prior_ships_remaining)
         @last_shot, @direction = determine_shot(state, ships_remaining)
+
         log(@last_shot)
         log(@direction)
         return @last_shot
       rescue Exception => ex
         log("error: " + ex.message)
         log(ex.backtrace)
+      end
+    end
+
+    def check_if_sank_ship(prior_ships_remaining)
+      if prior_ships_remaining.size != @ships_remaining.size
+        log('sank a ship!')
+        first_different_index = (0...prior_ships_remaining.size).select {|i| prior_ships_remaining[i] != @ships_remaining[i]}.first
+        sunk_ship_length = prior_ships_remaining[first_different_index]
+
+        @sunk_locations += (0...sunk_ship_length).map {|x| move_direction(@last_shot, opposite_direction(@direction), x)}
+        log(@sunk_locations)
+
+        @last_shot = @direction = nil
       end
     end
 
@@ -57,11 +61,17 @@ class RemyPlayer
     end
 
     def determine_shot(state, ships_remaining)
+      #currently tracking a ship
       if @last_shot != nil && @direction != :none
+
+        #continue in same direction if last shot was a hit
         if state[@last_shot[1]][@last_shot[0]] == :hit && is_valid_unknown(move_direction(@last_shot, @direction), state)
           return [move_direction(@last_shot, @direction), @direction]
         end
         
+        #go in reverse direction if 
+        # (a) last shot was a hit and can't continue that direction or 
+        # (b) if last shot was a miss but two back was a hit
         back_two_in_other_dir = move_direction(@last_shot, opposite_direction(@direction), 2)
         if state[@last_shot[1]][@last_shot[0]] == :hit || (is_valid_position(back_two_in_other_dir) && state[back_two_in_other_dir[1]][back_two_in_other_dir[0]] == :hit)
           candidate = move_direction(@last_shot, opposite_direction(@direction))
